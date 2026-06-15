@@ -46,12 +46,12 @@ def build_report(tokens: list[Token]) -> list[Report]:
     )  # erzeugt automatisch eine leere Liste, wenn auf einen noch nicht existierenden Schlüssel zugegriffen wird
     for t in tokens:
         by_user[(t.get("username"), t.get("user_realm"))].append(t)
-    reports = []
+    reports: list[Report] = []
     for (username, realm), user_tokens in sorted(by_user.items()):
         reports.append(
             {
                 "username": username,
-                "realm": realm,
+                "user_realm": realm,
                 "anzahl_token": len(user_tokens),
                 "anzahl_nutzungen_gesamt": sum(
                     int(x["info"].get("count_auth_success", 0)) for x in user_tokens
@@ -71,14 +71,14 @@ def build_report(tokens: list[Token]) -> list[Report]:
     return reports
 
 
-def write_csv(reports: Report):
+def write_csv(reports: list [Report]):
     path = "csv_reports"
     os.makedirs(path, exist_ok=True)
     filename = "token_report_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"
     new_file = os.path.join(path, filename)
     fieldnames = [
         "username",
-        "realm",
+        "user_realm",
         "anzahl_token",
         "anzahl_nutzungen_gesamt",
         "serial",
@@ -93,7 +93,7 @@ def write_csv(reports: Report):
                 writer.writerow(
                     {
                         "username": entry["username"],
-                        "realm": entry["realm"],
+                        "user_realm": entry["user_realm"],
                         "anzahl_token": entry["anzahl_token"],
                         "anzahl_nutzungen_gesamt": entry["anzahl_nutzungen_gesamt"],
                         "serial": t["serial"],

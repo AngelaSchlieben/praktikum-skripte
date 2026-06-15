@@ -8,5 +8,7 @@ jobs:
     steps:
       - name: ruff
         uses: astral-sh/ruff-action@v4.0.0
-      - name: 
-        run: 
+      - name: pyright
+        uses: jakebailey/pyright-action@v3
+        with:
+          version: 1.1.311 # Optional (change me!)

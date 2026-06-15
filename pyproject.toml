@@ -1,0 +1,19 @@
+[project]
+name = "eigene-skripte"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.17",
+]
+
+[tool.ruff.lint]
+select = [
+    "I", # Isort
+]

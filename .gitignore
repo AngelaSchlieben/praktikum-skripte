@@ -1,1 +1,5 @@
-/csv_reports/
+csv_reports/
+eigene_hinweise.txt
+.venv
+__pycache__/
+.ruff_cache/

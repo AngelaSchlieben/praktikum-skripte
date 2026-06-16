@@ -6,7 +6,7 @@ import argparse
 from collections import defaultdict
 import csv
 
-from Types.token_report import Report, Token
+from Types.token_report import RawToken, Report
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,14 +33,14 @@ def authenticate(url: str, user: str, password: str) -> str:
     return response.json()["result"]["value"]["token"]
 
 
-def fetch_tokens(url: str, auth_token: str) -> list[Token]:
+def fetch_tokens(url: str, auth_token: str) -> list[RawToken]:
     url = f"{url}/token"
     header = {"Authorization": auth_token}
     response = requests.get(url, headers=header)
     return response.json()["result"]["value"]["tokens"]
 
 
-def build_report(tokens: list[Token]) -> list[Report]:
+def build_report(tokens: list[RawToken]) -> list[Report]:
     by_user = defaultdict(
         list
     )  # erzeugt automatisch eine leere Liste, wenn auf einen noch nicht existierenden Schlüssel zugegriffen wird

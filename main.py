@@ -71,7 +71,7 @@ def build_report(tokens: list[RawToken]) -> list[Report]:
     return reports
 
 
-def write_csv(reports: list [Report]):
+def write_csv(reports: list[Report]):
     path = "csv_reports"
     os.makedirs(path, exist_ok=True)
     filename = "token_report_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"

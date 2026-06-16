@@ -1,10 +1,10 @@
+import argparse
+import csv
 import os
 import time
+from collections import defaultdict
 
 import requests
-import argparse
-from collections import defaultdict
-import csv
 
 from Types.token_report import RawToken, Report
 

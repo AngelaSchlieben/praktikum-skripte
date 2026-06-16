@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+
 class RawToken(TypedDict):
     username: str | None
     realm: str | None

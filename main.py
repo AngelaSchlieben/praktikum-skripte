@@ -3,6 +3,7 @@ import csv
 import os
 import time
 from collections import defaultdict
+from http import HTTPStatus
 
 import requests
 
@@ -19,18 +20,30 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def authenticate(url: str, user: str, password: str) -> str:
-    # Authentifizierung des Users, der die Abfrage macht
-    url = f"{url}/auth"
-    payload = {"username": user, "password": password}
-    response = requests.post(url, json=payload)
-    if response.status_code == 401:
-        print(f"Error: {response.status_code} Unauthorized")
+def authenticate(url: str, user: str, password: str) -> str | None:
+    try:
+        url = f"{url}/auth"
+        payload = {"username": user, "password": password}
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code != 200:
+            status = HTTPStatus(response.status_code)
+            print(f"Code: {status.value}")
+            print(f"Name: {status.name}")
+            print(f"Info: {status.description}")
+            exit()
+        return response.json()["result"]["value"]["token"]
+    except (
+        requests.exceptions.ConnectionError,    # URL nicht erreichbar
+        requests.exceptions.MissingSchema,      # URL-Format unvollständig
+        requests.exceptions.InvalidSchema,      # URL-Protokoll nicht unterstützt
+        requests.exceptions.InvalidURL          # URL ungültig
+    ) as err:
+        print(type(err).__name__)
+        print("Verbindung zur angegebenen URL konnte nicht hergestellt werden. Bitte URL prüfen.")
         exit()
-    if response.status_code != 200:
-        print(f"Error: {response.status_code}")
+    except (requests.exceptions.ReadTimeout) as err:    # Zeitablauf
+        print(type(err).__name__)
         exit()
-    return response.json()["result"]["value"]["token"]
 
 
 def fetch_tokens(url: str, auth_token: str) -> list[RawToken]:
@@ -41,11 +54,12 @@ def fetch_tokens(url: str, auth_token: str) -> list[RawToken]:
 
 
 def build_report(tokens: list[RawToken]) -> list[Report]:
-    by_user = defaultdict(
-        list
-    )  # erzeugt automatisch eine leere Liste, wenn auf einen noch nicht existierenden Schlüssel zugegriffen wird
+    by_user = defaultdict(list) # erzeugt dict mit leeren Listen als value für neue keys
     for t in tokens:
-        by_user[(t.get("username"), t.get("user_realm"))].append(t)
+        if t.get("username") == "" or t.get("username") == "**resolver error**" or t.get("username") == None:
+            by_user[("UNKNOWN", "UNKNOWN")].append(t) # verwaiste Token zusammenfassen
+        else:
+            by_user[(t.get("username"), t.get("user_realm"))].append(t)
     reports: list[Report] = []
     for (username, realm), user_tokens in sorted(by_user.items()):
         reports.append(
@@ -76,30 +90,31 @@ def write_csv(reports: list[Report]):
     os.makedirs(path, exist_ok=True)
     filename = "token_report_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"
     new_file = os.path.join(path, filename)
-    fieldnames = [
-        "username",
-        "user_realm",
-        "anzahl_token",
-        "anzahl_nutzungen_gesamt",
-        "serial",
-        "tokentype",
-        "count_auth_success",
-    ]
     with open(new_file, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+        writer = csv.writer(f)
+        writer.writerow(
+            [
+                "username",
+                "user_realm",
+                "anzahl_token",
+                "anzahl_nutzungen_gesamt",
+                "serial",
+                "tokentype",
+                "count_auth_success",
+            ]
+        )
         for entry in reports:
             for t in entry["tokens"]:
                 writer.writerow(
-                    {
-                        "username": entry["username"],
-                        "user_realm": entry["user_realm"],
-                        "anzahl_token": entry["anzahl_token"],
-                        "anzahl_nutzungen_gesamt": entry["anzahl_nutzungen_gesamt"],
-                        "serial": t["serial"],
-                        "tokentype": t["tokentype"],
-                        "count_auth_success": t["count_auth_success"],
-                    }
+                    [
+                        entry["username"],
+                        entry["user_realm"],
+                        entry["anzahl_token"],
+                        entry["anzahl_nutzungen_gesamt"],
+                        t["serial"],
+                        t["tokentype"],
+                        t["count_auth_success"],
+                    ]
                 )
 
 
@@ -109,7 +124,7 @@ def main():
     user = args.user
     password = args.password
     auth_token = authenticate(url, user, password)
-    tokens = fetch_tokens(url, auth_token)
+    tokens = fetch_tokens(url, auth_token) # type: ignore
     report = build_report(tokens)
     print(report)
     write_csv(report)

@@ -9,6 +9,7 @@ import requests
 
 from type_definitions.token_report import RawToken, Report
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Liest Token-Daten aus eduMFA per API und schreibt einen CSV-Report."

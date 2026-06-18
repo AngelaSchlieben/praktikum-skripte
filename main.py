@@ -7,8 +7,7 @@ from http import HTTPStatus
 
 import requests
 
-from Types.token_report import RawToken, Report
-
+from type_definitions.token_report import RawToken, Report
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -20,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def authenticate(url: str, user: str, password: str) -> str | None:
+def authenticate(url: str, user: str, password: str) -> str:
     try:
         url = f"{url}/auth"
         payload = {"username": user, "password": password}
@@ -36,12 +35,12 @@ def authenticate(url: str, user: str, password: str) -> str | None:
         requests.exceptions.ConnectionError,    # URL nicht erreichbar
         requests.exceptions.MissingSchema,      # URL-Format unvollständig
         requests.exceptions.InvalidSchema,      # URL-Protokoll nicht unterstützt
-        requests.exceptions.InvalidURL          # URL ungültig
+        requests.exceptions.InvalidURL,         # URL ungültig
     ) as err:
         print(type(err).__name__)
         print("Verbindung zur angegebenen URL konnte nicht hergestellt werden. Bitte URL prüfen.")
         exit()
-    except (requests.exceptions.ReadTimeout) as err:    # Zeitablauf
+    except requests.exceptions.ReadTimeout as err:  # Zeitablauf
         print(type(err).__name__)
         exit()
 
@@ -54,10 +53,11 @@ def fetch_tokens(url: str, auth_token: str) -> list[RawToken]:
 
 
 def build_report(tokens: list[RawToken]) -> list[Report]:
-    by_user = defaultdict(list) # erzeugt dict mit leeren Listen als value für neue keys
+    by_user = defaultdict(list)
+    # erzeugt dict mit leeren Listen als value für neue keys
     for t in tokens:
-        if t.get("username") == "" or t.get("username") == "**resolver error**" or t.get("username") == None:
-            by_user[("UNKNOWN", "UNKNOWN")].append(t) # verwaiste Token zusammenfassen
+        if t.get("username") in ("", "**resolver error**", None):
+            by_user[("UNKNOWN", "UNKNOWN")].append(t)  # verwaiste Token zusammenfassen
         else:
             by_user[(t.get("username"), t.get("user_realm"))].append(t)
     reports: list[Report] = []
@@ -85,7 +85,7 @@ def build_report(tokens: list[RawToken]) -> list[Report]:
     return reports
 
 
-def write_csv(reports: list[Report]):
+def write_csv(reports: list[Report]) -> None:
     path = "csv_reports"
     os.makedirs(path, exist_ok=True)
     filename = "token_report_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"
@@ -118,17 +118,16 @@ def write_csv(reports: list[Report]):
                 )
 
 
-def main():
+def main() -> None:
     args = parse_args()
     url = args.url
     user = args.user
     password = args.password
     auth_token = authenticate(url, user, password)
-    tokens = fetch_tokens(url, auth_token) # type: ignore
+    tokens = fetch_tokens(url, auth_token)
     report = build_report(tokens)
     print(report)
     write_csv(report)
-
-
+    
 if __name__ == "__main__":
     main()
